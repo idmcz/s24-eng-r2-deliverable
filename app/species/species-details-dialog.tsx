@@ -153,22 +153,21 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
           <Form {...form}>
             <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
             <FormField
-                  control={form.control}
-                  name="scientific_name"
-                  render={({ field }) => {
-                    // We must extract value from field and convert a potential defaultValue of `null` to "" because form inputs can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
-                    const { value, ...rest } = field;
-                    return (
-                      <FormItem>
-                        <FormLabel>Scientific Name</FormLabel>
-                        <FormControl>
-                        <Input readOnly={!isEditing} placeholder={"insert starter string"} value={value ?? ""}{...rest} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                }}
-              />
+              control={form.control}
+              name="scientific_name"
+              render={({ field }) => {
+                const { value, ...rest } = field;
+                return (
+                  <FormItem>
+                    <FormLabel>Common Name</FormLabel>
+                    <FormControl>
+                      <Input readOnly={!isEditing} placeholder={"Guinea Pig"} value={value ?? ""}{...rest} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
             <FormField
               control={form.control}
               name="common_name"
@@ -178,7 +177,7 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
                   <FormItem>
                     <FormLabel>Common Name</FormLabel>
                     <FormControl>
-                      <Input readOnly={!isEditing} placeholder={"insert starter string"} value={value ?? ""}{...rest} />
+                      <Input readOnly={!isEditing} placeholder={"Guinea Pig"} value={value ?? ""}{...rest} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -194,7 +193,7 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
                   <FormItem>
                     <FormLabel>Total Population</FormLabel>
                     <FormControl>
-                    <Input readOnly={!isEditing} placeholder = {"insert starter string"} value={value ?? ""}{...rest} />
+                    <Input readOnly={!isEditing} placeholder = {"300,000"} value={value ?? ""}{...rest} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -210,7 +209,7 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                    <Textarea readOnly={!isEditing} placeholder = {"insert starter string"} value={value ?? ""}{...rest} />
+                    <Textarea readOnly={!isEditing} placeholder = {"The guinea pig or domestic guinea pig, also known as the cavy or domestic cavy, is a species of rodent belonging to the genus Cavia in the family Caviidae."} value={value ?? ""}{...rest} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -226,7 +225,7 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
                   <FormItem>
                     <FormLabel>Kingdom</FormLabel>
                     <FormControl>
-                    <Input readOnly={!isEditing} placeholder = {"insert starter string"} value={value ?? ""}{...rest} />
+                    <Input readOnly={!isEditing} placeholder = {"Animala"} value={value ?? ""}{...rest} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
