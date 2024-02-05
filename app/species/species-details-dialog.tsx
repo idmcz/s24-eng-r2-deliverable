@@ -22,12 +22,7 @@ import { useState, type BaseSyntheticEvent, type MouseEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-
-type Species = Database["public"]["Tables"]["species"]["Row"];
-
-  // Define kingdom enum for use in Zod schema and displaying dropdown options in the form
 const kingdoms = z.enum(["Animalia", "Plantae", "Fungi", "Protista", "Archaea", "Bacteria"]);
-
 // Use Zod to define the shape + requirements of a Species entry; used in form validation
 const speciesSchema = z.object({
   scientific_name: z
@@ -58,15 +53,40 @@ const speciesSchema = z.object({
     .nullable()
     // Transform empty string or only whitespace input to null before form submission, and trim whitespace otherwise
     .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
+    endangered: z.boolean(),
 });
 
-type FormData = z.infer<typeof speciesSchema>;
+type Species = Database["public"]["Tables"]["species"]["Row"];
 
+const profileFormSchema = z.object({
+  username: z
+    .string()
+    .min(2, {
+      message: "Username must be at least 2 characters.",
+    })
+    .max(30, {
+      message: "Username must not be longer than 30 characters.",
+    })
+    .transform((val) => val.trim()),
+  bio: z
+    .string()
+    .max(160, {
+      message: "Biography cannot be longer than 160 characters.",
+    })
+    .nullable()
+    // Transform empty string or only whitespace input to null before form submission, and trim whitespace otherwise
+    .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
+});
+
+// Extract Profile type from Supabase schema
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+  // Define kingdom enum for use in Zod schema and displaying dropdown options in the form
 
 export default function SpeciesDetailsDialog({ species, currentUser }: { species: Species, currentUser: string }) {
 
-  const [open, setOpen] = useState<boolean>(false);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const defaultValues = {
     scientific_name: species.scientific_name,
@@ -74,57 +94,61 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
     kingdom: species.kingdom,
     total_population: species.total_population,
     description: species.description,
-    author: species.author
+    author: species.author,
+    endangered: species.endangered
   };
 
-  const form = useForm<FormData>({
+  type SpeciesFormValues = z.infer<typeof speciesSchema>;
+
+  const form = useForm<SpeciesFormValues>({
     resolver: zodResolver(speciesSchema),
     defaultValues,
     mode: "onChange",
   });
 
-  type SpeciesFormValues = z.infer<typeof speciesSchema>;
   const router = useRouter();
 
-  const onSubmit = async (data: SpeciesFormValues) => {
+    const onSubmit = async (data: SpeciesFormValues) => {
+      // Instantiate Supabase client (for client components) and make update based on input data
+      console.log('Form submitted:', data);
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase
+        .from("species")
+        .update(
+          { scientific_name: data.scientific_name,
+          common_name: data.common_name,
+          kingdom: data.kingdom,
+          total_population: data.total_population,
+          description: data.description,
+          endangered: data.endangered}
+          )
+        .eq("id", species.id);
 
-    // Instantiate Supabase client (for client components) and make update based on input data
-    const supabase = createBrowserSupabaseClient();
-    const { error } = await supabase
-      .from("species")
-      .update(
-        { scientfic_name: data.scientific_name,
-        common_name: data.common_name,
-        kingdom: data.kingdom,
-        total_population: data.total_population,
-        description: data.description, }
-        )
-      .eq("userID", species.author);
+      // Catch and report errors from Supabase and exit the onSubmit function with an early 'return' if an error occurred.
+      if (error) {
+        return toast({
+          title: "Something went wrong.",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
 
-    // Catch and report errors from Supabase and exit the onSubmit function with an early 'return' if an error occurred.
-    if (error) {
+      // Because Supabase errors were caught above, the remainder of the function will only execute upon a successful edit
+
+      setIsEditing(false);
+
+      // Reset form values to the data values that have been processed by zod.
+      // This is helpful to do after EDITING, so that the user sees any changes that have occurred during transformation
+      form.reset(data);
+
+      // Router.refresh does not affect ProfileForm because it is a client component, but it will refresh the initials in the user-nav in the event of a username change
+      router.refresh();
+
       return toast({
-        title: "Something went wrong.",
-        description: error.message,
-        variant: "destructive",
+        title: "Species information updated successfully!",
       });
-    }
+    };
 
-    // Because Supabase errors were caught above, the remainder of the function will only execute upon a successful edit
-
-    setIsEditing(false);
-
-    // Reset form values to the data values that have been processed by zod.
-    // This is helpful to do after EDITING, so that the user sees any changes that have occurred during transformation
-    form.reset(data);
-
-    // Router.refresh does not affect ProfileForm because it is a client component, but it will refresh the initials in the user-nav in the event of a username change
-    router.refresh();
-
-    return toast({
-      title: "Profile updated successfully!",
-    });
-  };
 
   const startEditing = (e: MouseEvent) => {
     e.preventDefault();
@@ -167,7 +191,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
           <DialogHeader>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
               name="scientific_name"
@@ -248,6 +272,47 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
                 );
               }}
             />
+            <FormField
+              control={form.control}
+              name="endangered"
+              render={({ field }) => {
+                const { value, ...rest } = field;
+                return (
+                  <FormItem>
+                    <FormLabel>Endangered</FormLabel>
+                    <FormControl>
+                      <select
+                        {...rest}
+                        onChange={(e) => {
+                          field.onChange(e.target.value === 'true');
+                        }}
+                        disabled={!isEditing}
+                      >
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+            <FormField
+              control={form.control}
+              name="author"
+              render={({ field }) => {
+                const { value, ...rest } = field;
+                return (
+                  <FormItem>
+                    <FormLabel>Author - UUID</FormLabel>
+                    <FormControl>
+                    <Input readOnly value={species.author} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
           {isEditing && species.author === currentUser ? (
             <>
               <Button type="submit" className="mr-2">
@@ -260,12 +325,11 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
           ) : (
             // Toggle editing mode
             <Button onClick={startEditing}>Edit Species</Button>
-          )}
-        </form>
-  </Form>
+            )}
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </>
   );
-
 }
