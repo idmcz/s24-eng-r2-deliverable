@@ -35,6 +35,11 @@ const speciesSchema = z.object({
     .trim()
     .min(1)
     .transform((val) => val?.trim()),
+    author: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((val) => val?.trim()),
   common_name: z
     .string()
     .nullable()
@@ -58,7 +63,8 @@ const speciesSchema = z.object({
 type FormData = z.infer<typeof speciesSchema>;
 
 
-export default function SpeciesDetailsDialog ({ species }: { species: Species }) {
+export default function SpeciesDetailsDialog({ species, currentUser }: { species: Species, currentUser: string }) {
+
   const [open, setOpen] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
@@ -68,6 +74,7 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
     kingdom: species.kingdom,
     total_population: species.total_population,
     description: species.description,
+    author: species.author
   };
 
   const form = useForm<FormData>({
@@ -80,6 +87,7 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
   const router = useRouter();
 
   const onSubmit = async (data: SpeciesFormValues) => {
+
     // Instantiate Supabase client (for client components) and make update based on input data
     const supabase = createBrowserSupabaseClient();
     const { error } = await supabase
@@ -120,7 +128,15 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
 
   const startEditing = (e: MouseEvent) => {
     e.preventDefault();
-    setIsEditing(true);
+    if (species.author !== currentUser) {
+      toast({
+        title: "Permission Denied",
+        description: "You do not have permission to edit this species.",
+        variant: "destructive",
+      });
+    } else {
+      setIsEditing(true);
+    }
   };
 
   const handleCancel = (e: MouseEvent) => {
@@ -232,21 +248,19 @@ export default function SpeciesDetailsDialog ({ species }: { species: Species })
                 );
               }}
             />
-
-
-          {isEditing ? (
-          <>
-            <Button type="submit" className="mr-2">
-              Update species
-            </Button>
-            <Button variant="secondary" onClick={handleCancel}>
-              Cancel
-            </Button>
-          </>
-        ) : (
-          // Toggle editing mode
-          <Button onClick={startEditing}>Edit Species</Button>
-        )}
+          {isEditing && species.author === currentUser ? (
+            <>
+              <Button type="submit" className="mr-2">
+                Update species
+              </Button>
+              <Button variant="secondary" onClick={handleCancel}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            // Toggle editing mode
+            <Button onClick={startEditing}>Edit Species</Button>
+          )}
         </form>
   </Form>
         </DialogContent>
