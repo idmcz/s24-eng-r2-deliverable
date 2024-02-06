@@ -1,17 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { createBrowserSupabaseClient } from "@/lib/client-utils";
@@ -81,8 +78,6 @@ const profileFormSchema = z.object({
 // Extract Profile type from Supabase schema
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-  // Define kingdom enum for use in Zod schema and displaying dropdown options in the form
-
 export default function SpeciesDetailsDialog({ species, currentUser }: { species: Species, currentUser: string }) {
 
   const [open, setOpen] = useState(false);
@@ -108,47 +103,69 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
 
   const router = useRouter();
 
-    const onSubmit = async (data: SpeciesFormValues) => {
-      // Instantiate Supabase client (for client components) and make update based on input data
-      console.log('Form submitted:', data);
-      const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase
-        .from("species")
-        .update(
-          { scientific_name: data.scientific_name,
-          common_name: data.common_name,
-          kingdom: data.kingdom,
-          total_population: data.total_population,
-          description: data.description,
-          endangered: data.endangered}
-          )
-        .eq("id", species.id);
+  const onSubmit = async (data: SpeciesFormValues) => {
+    // Instantiate Supabase client (for client components) and make update based on input data
+    console.log('Form submitted:', data);
+    const supabase = createBrowserSupabaseClient();
+    const { error } = await supabase
+      .from("species")
+      .update(
+        { scientific_name: data.scientific_name,
+        common_name: data.common_name,
+        kingdom: data.kingdom,
+        total_population: data.total_population,
+        description: data.description,
+        endangered: data.endangered}
+        )
+      .eq("id", species.id);
 
-      // Catch and report errors from Supabase and exit the onSubmit function with an early 'return' if an error occurred.
+    // Catch and report errors from Supabase and exit the onSubmit function with an early 'return' if an error occurred.
+    if (error) {
+      return toast({
+        title: "Something went wrong.",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    // Because Supabase errors were caught above, the remainder of the function will only execute upon a successful edit
+    setIsEditing(false);
+
+    // Reset form values to the data values that have been processed by zod.
+    // This is helpful to do after EDITING, so that the user sees any changes that have occurred during transformation
+    form.reset(data);
+
+    // Router.refresh does not affect ProfileForm because it is a client component, but it will refresh the initials in the user-nav in the event of a username change
+    router.refresh();
+
+    return toast({
+      title: "Species information updated successfully!",
+    });
+  };
+
+  {/*These handle state changes*/}
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this species?");
+    if (confirmDelete) {
+      // Proceed with deletion
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.from("species").delete().eq("id", species.id);
+
       if (error) {
         return toast({
-          title: "Something went wrong.",
+          title: "Error deleting species",
           description: error.message,
           variant: "destructive",
         });
       }
 
-      // Because Supabase errors were caught above, the remainder of the function will only execute upon a successful edit
-
-      setIsEditing(false);
-
-      // Reset form values to the data values that have been processed by zod.
-      // This is helpful to do after EDITING, so that the user sees any changes that have occurred during transformation
-      form.reset(data);
-
-      // Router.refresh does not affect ProfileForm because it is a client component, but it will refresh the initials in the user-nav in the event of a username change
-      router.refresh();
-
-      return toast({
-        title: "Species information updated successfully!",
+      toast({
+        title: "Species deleted successfully!",
       });
-    };
 
+
+      window.location.reload();
+    }
+  };
 
   const startEditing = (e: MouseEvent) => {
     e.preventDefault();
@@ -158,9 +175,8 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
         description: "You do not have permission to edit this species.",
         variant: "destructive",
       });
-    } else {
+    } else
       setIsEditing(true);
-    }
   };
 
   const handleCancel = (e: MouseEvent) => {
@@ -179,6 +195,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
     setOpen(false);
   };
 
+  {/*Form stuff*/}
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -191,7 +208,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
           <DialogHeader>
           </DialogHeader>
           <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
             <FormField
               control={form.control}
               name="scientific_name"
@@ -225,21 +242,28 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
               }}
             />
             <FormField
-              control={form.control}
-              name="total_population"
-              render={({ field }) => {
-                const { value, ...rest } = field;
-                return (
-                  <FormItem>
-                    <FormLabel>Total Population</FormLabel>
-                    <FormControl>
-                    <Input readOnly={!isEditing} placeholder = {"300,000"} value={value ?? ""}{...rest} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
+                control={form.control}
+                name="total_population"
+                render={({ field }) => {
+                  const { value, ...rest } = field;
+                  return (
+                    <FormItem>
+                      <FormLabel>Total population</FormLabel>
+                      <FormControl>
+                        {/* Using shadcn/ui form with number: https://github.com/shadcn-ui/ui/issues/421 */}
+                        <Input readOnly={!isEditing}
+                          type="number"
+                          value={value ?? ""}
+                          placeholder="300000"
+                          {...rest}
+                          onChange={(event) => field.onChange(+event.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
             <FormField
               control={form.control}
               name="description"
@@ -314,14 +338,18 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
               }}
             />
           {isEditing && species.author === currentUser ? (
-            <>
+            <div className="flex">
               <Button type="submit" className="mr-2">
                 Update species
               </Button>
               <Button variant="secondary" onClick={handleCancel}>
                 Cancel
               </Button>
-            </>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete Species
+              </Button>
+
+              </div>
           ) : (
             // Toggle editing mode
             <Button onClick={startEditing}>Edit Species</Button>
