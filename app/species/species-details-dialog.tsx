@@ -15,7 +15,7 @@ import { createBrowserSupabaseClient } from "@/lib/client-utils";
 import { type Database } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState, type BaseSyntheticEvent, type MouseEvent } from "react";
+import { useEffect, useState, type BaseSyntheticEvent, type MouseEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -79,9 +79,38 @@ const profileFormSchema = z.object({
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export default function SpeciesDetailsDialog({ species, currentUser }: { species: Species, currentUser: string }) {
-
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [authorName, setAuthorName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAuthorName = async () => {
+      const supabase = createBrowserSupabaseClient();
+
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", species.author)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setAuthorName(data ? data.display_name : null);
+      } catch (error) {
+        toast({
+          title: "Error fetching author information",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (species.author) {
+      fetchAuthorName();
+    }
+  }, [species.author]);
 
   const defaultValues = {
     scientific_name: species.scientific_name,
@@ -328,9 +357,9 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
                 const { value, ...rest } = field;
                 return (
                   <FormItem>
-                    <FormLabel>Author - UUID</FormLabel>
+                    <FormLabel>Author's Name</FormLabel>
                     <FormControl>
-                    <Input readOnly value={species.author} />
+                    <Input readOnly value={authorName ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
