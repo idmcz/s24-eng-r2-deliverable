@@ -151,21 +151,26 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
     if (confirmDelete) {
       // Proceed with deletion
       const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase.from("species").delete().eq("id", species.id);
 
-      if (error) {
-        return toast({
+      try {
+        const { error } = await supabase.from("species").delete().eq("id", species.id);
+
+        if (error) {
+          throw error; // Throw an error to be caught in the catch block
+        }
+
+        toast({
+          title: "Species deleted successfully!",
+        });
+
+        window.location.reload(); // You might want to consider a different approach for refreshing
+      } catch (error) {
+        // Handle the error
+        toast({
           title: "Error deleting species",
-          description: error.message,
           variant: "destructive",
         });
       }
-
-      toast({
-        title: "Species deleted successfully!",
-      });
-
-      window.location.reload();
     }
   };
 
@@ -212,7 +217,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
                   const { value, ...rest } = field;
                   return (
                     <FormItem>
-                      <FormLabel>Common Name</FormLabel>
+                      <FormLabel>Scientific Name</FormLabel>
                       <FormControl>
                         <Input readOnly={!isEditing} placeholder={"Guinea Pig"} value={value ?? ""} {...rest} />
                       </FormControl>
