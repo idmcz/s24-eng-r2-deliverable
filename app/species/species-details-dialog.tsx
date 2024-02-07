@@ -56,7 +56,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
   const [authorName, setAuthorName] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAuthorName = async () => {
+    const fetchAuthorName = async (): Promise<void> => {
       const supabase = createBrowserSupabaseClient();
 
       try {
@@ -209,7 +209,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
         <DialogContent className="max-h-screen overflow-y-auto sm:max-w-[600px]">
           <DialogHeader></DialogHeader>
           <Form {...form}>
-            <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
+            <form onSubmit={(e: BaseSyntheticEvent) => form.handleSubmit(onSubmit)(e)} className="space-y-8">
               <FormField
                 control={form.control}
                 name="scientific_name"
