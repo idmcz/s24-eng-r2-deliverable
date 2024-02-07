@@ -56,7 +56,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
   const [authorName, setAuthorName] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAuthorName = async (): Promise<void> => {
+    const fetchAuthorName = async () => {
       const supabase = createBrowserSupabaseClient();
 
       try {
@@ -151,28 +151,23 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
     if (confirmDelete) {
       // Proceed with deletion
       const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.from("species").delete().eq("id", species.id);
 
-      try {
-        const { error } = await supabase.from("species").delete().eq("id", species.id);
-
-        if (error) {
-          throw error; // Throw an error to be caught in the catch block
-        }
-
-        toast({
-          title: "Species deleted successfully!",
-        });
-      } catch (error) {
-        // Handle the error
-        toast({
+      if (error) {
+        return toast({
           title: "Error deleting species",
+          description: error.message,
           variant: "destructive",
         });
       }
-    }
 
-    // Explicitly return void to satisfy TypeScript
-    return void 0;
+      toast({
+        title: "Species deleted successfully!",
+      });
+
+      setOpen(false);
+      router.refresh();
+    }
   };
 
   const startEditing = (e: MouseEvent) => {
@@ -210,13 +205,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
         <DialogContent className="max-h-screen overflow-y-auto sm:max-w-[600px]">
           <DialogHeader></DialogHeader>
           <Form {...form}>
-            <form
-              onSubmit={async (e: BaseSyntheticEvent) => {
-                await form.handleSubmit(onSubmit)(e);
-                return void 0;
-              }}
-              className="space-y-8"
-            >
+            <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
               <FormField
                 control={form.control}
                 name="scientific_name"
