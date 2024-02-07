@@ -170,6 +170,9 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
         });
       }
     }
+
+    // Explicitly return void to satisfy TypeScript
+    return void 0;
   };
 
   const startEditing = (e: MouseEvent) => {
@@ -207,7 +210,13 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
         <DialogContent className="max-h-screen overflow-y-auto sm:max-w-[600px]">
           <DialogHeader></DialogHeader>
           <Form {...form}>
-            <form onSubmit={(e: BaseSyntheticEvent) => form.handleSubmit(onSubmit)(e)} className="space-y-8">
+            <form
+              onSubmit={async (e: BaseSyntheticEvent) => {
+                await form.handleSubmit(onSubmit)(e);
+                return void 0;
+              }}
+              className="space-y-8"
+            >
               <FormField
                 control={form.control}
                 name="scientific_name"
