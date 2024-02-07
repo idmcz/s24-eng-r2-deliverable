@@ -162,8 +162,6 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
         toast({
           title: "Species deleted successfully!",
         });
-
-        window.location.reload(); // You might want to consider a different approach for refreshing
       } catch (error) {
         // Handle the error
         toast({
@@ -341,7 +339,7 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
                   const { value, ...rest } = field;
                   return (
                     <FormItem>
-                      <FormLabel>Author's Name</FormLabel>
+                      <FormLabel>Author Name</FormLabel>
                       <FormControl>
                         <Input readOnly value={authorName ?? ""} />
                       </FormControl>
