@@ -10,7 +10,7 @@ import { createBrowserSupabaseClient } from "@/lib/client-utils";
 import { type Database } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type BaseSyntheticEvent, type MouseEvent } from "react";
+import { useState, type BaseSyntheticEvent, type MouseEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -55,34 +55,28 @@ export default function SpeciesDetailsDialog({ species, currentUser }: { species
   const [isEditing, setIsEditing] = useState(false);
   const [authorName, setAuthorName] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchAuthorName = async () => {
-      const supabase = createBrowserSupabaseClient();
+  const fetchAuthorName = async () => {
+    const supabase = createBrowserSupabaseClient();
 
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", species.author)
-          .single();
+    try {
+      const { data, error } = await supabase.from("profiles").select("display_name").eq("id", species.author).single();
 
-        if (error) {
-          throw error;
-        }
-
-        setAuthorName(data ? data.display_name : null);
-      } catch (error) {
-        toast({
-          title: "Error fetching author information",
-          variant: "destructive",
-        });
+      if (error) {
+        throw error;
       }
-    };
 
-    if (species.author) {
-      fetchAuthorName();
+      setAuthorName(data ? data.display_name : null);
+    } catch (error) {
+      toast({
+        title: "Error fetching author information",
+        variant: "destructive",
+      });
     }
-  }, [species.author]);
+  };
+
+  if (species.author) {
+    fetchAuthorName();
+  }
 
   const defaultValues = {
     scientific_name: species.scientific_name,
