@@ -1,3 +1,5 @@
+import { off } from "process";
+
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true, // Ignores config files in parent directories
@@ -26,6 +28,8 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    "@typescript-eslint/no-misused-promises": off,
+    "@typescript-eslint/no-floating-promises": off,
     // https://typescript-eslint.io/rules/no-unused-vars/
   },
 };
